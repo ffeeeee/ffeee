@@ -107,7 +107,8 @@ body {
     justify-content: center;
 }
 
-.fortune-input input {
+.fortune-input input,
+.category-select {
     padding: 10px 15px;
     border: 2px solid var(--primary-color);
     border-radius: 8px;
@@ -117,7 +118,8 @@ body {
     transition: border-color 0.3s ease;
 }
 
-.fortune-input input:focus {
+.fortune-input input:focus,
+.category-select:focus {
     outline: none;
     border-color: var(--primary-light);
 }
@@ -343,7 +345,8 @@ body {
     }
 
     .number-ball,
-    .bonus-number {
+    .bonus-number,
+    .menu-item {
         width: 45px;
         height: 45px;
         font-size: 16px;
@@ -364,6 +367,7 @@ body {
     }
 
     .fortune-input input,
+    .category-select,
     .fortune-btn {
         width: 100%;
     }
