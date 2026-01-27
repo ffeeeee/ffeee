@@ -32,9 +32,61 @@ const menuMessages = {
 function getMultipleMenus(category = '') {
     const menus = [];
     for (let i = 0; i < 5; i++) {
+        // 빈 문자열이면 전체 카테고리에서 추천, 아니면 특정 카테고리에서 추천
         menus.push(getRecommendedMenu(category));
     }
     return menus;
+}
+
+// 전체 카테고리에서 랜덤 메뉴 추천
+function getRandomMenuAcrossAllCategories() {
+    const allMenus = Object.values(menuData).flat();
+    return allMenus[Math.floor(Math.random() * allMenus.length)];
+}
+
+// 전체 카테고리에서 여러 메뉴 추천
+function getRandomMenusAcrossAll() {
+    const menus = [];
+    for (let i = 0; i < 5; i++) {
+        menus.push(getRandomMenuAcrossAllCategories());
+    }
+    return menus;
+}
+
+// Hugging Face API를 사용한 이미지 생성 함수
+async function generateFoodImage(foodName) {
+    try {
+        // 환경 변수에서 토큰을 가져오거나 사용자에게 요청
+        const token = localStorage.getItem('huggingFaceToken');
+        
+        if (!token) {
+            console.log('Hugging Face 토큰이 필요합니다.');
+            return null;
+        }
+        
+        const response = await fetch(
+            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2",
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                method: "POST",
+                body: JSON.stringify({ 
+                    inputs: `${foodName}, ghibli style, watercolor painting, cute, delicious, appetizing, studio ghibli art style`
+                }),
+            }
+        );
+        
+        if (!response.ok) {
+            throw new Error('이미지 생성 실패');
+        }
+        
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+    } catch (error) {
+        console.error('이미지 생성 오류:', error);
+        return null;
+    }
 }
 
 // DOM 요소들
@@ -46,7 +98,7 @@ const categoryInput = document.getElementById('categoryInput');
 const menuResult = document.getElementById('menuResult');
 
 // 추천 버튼 클릭 이벤트
-recommendBtn.addEventListener('click', function() {
+recommendBtn.addEventListener('click', async function() {
     const category = categoryInput.value;
     const menu = getRecommendedMenu(category);
     const categoryType = category || 'random';
@@ -55,12 +107,34 @@ recommendBtn.addEventListener('click', function() {
     menuResult.innerHTML = `
         <h3>${message.emoji} ${message.text}</h3>
         <div class="fortune-info" style="text-align: center;">
-            <p style="font-size: 24px; font-weight: bold; color: var(--primary-light); margin: 20px 0;">🍽️ ${menu}</p>
-            <p style="font-size: 14px; opacity: 0.8;">맛있는 한끼 되세요! 😋</p>
+            <p style="font-size: 18px; font-weight: bold; color: var(--primary-light); margin: 15px 0;">🍽️ ${menu}</p>
+            <div style="font-size: 14px; opacity: 0.8;">이미지 생성 중...</div>
         </div>
     `;
     
     menuResult.classList.add('show');
+    
+    // 이미지 생성
+    const imageUrl = await generateFoodImage(menu);
+    
+    if (imageUrl) {
+        menuResult.innerHTML = `
+            <h3>${message.emoji} ${message.text}</h3>
+            <div class="fortune-info" style="text-align: center;">
+                <img src="${imageUrl}" alt="${menu}" style="max-width: 300px; width: 100%; height: auto; border-radius: 8px; margin: 15px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <p style="font-size: 24px; font-weight: bold; color: var(--primary-light); margin: 15px 0;">🍽️ ${menu}</p>
+                <p style="font-size: 14px; opacity: 0.8;">맛있는 한끼 되세요! 😋</p>
+            </div>
+        `;
+    } else {
+        menuResult.innerHTML = `
+            <h3>${message.emoji} ${message.text}</h3>
+            <div class="fortune-info" style="text-align: center;">
+                <p style="font-size: 24px; font-weight: bold; color: var(--primary-light); margin: 20px 0;">🍽️ ${menu}</p>
+                <p style="font-size: 14px; opacity: 0.8;">맛있는 한끼 되세요! 😋</p>
+            </div>
+        `;
+    }
 });
 
 // 엔터키 입력 시 추천받기
@@ -73,7 +147,7 @@ categoryInput.addEventListener('keypress', function(e) {
 // 랜덤 추천 버튼 클릭 이벤트
 randomBtn.addEventListener('click', function() {
     menuBoxes.innerHTML = '';
-    const menus = getMultipleMenus();
+    const menus = getRandomMenusAcrossAll();
     
     menus.forEach((menu, index) => {
         const box = document.createElement('div');
